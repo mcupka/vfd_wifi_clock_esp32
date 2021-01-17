@@ -14,9 +14,6 @@ This example code is in the Public Domain (or CC0 licensed, at your option.)
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "driver/spi_master.h"
-#include "driver/gpio.h"
-
 #include "sdkconfig.h"
 #include "esp_log.h"
 
@@ -30,41 +27,14 @@ This example code is in the Public Domain (or CC0 licensed, at your option.)
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
-#include "protocol_examples_common.h"
 
-#include "cJSON.h"
-
-#define WEB_SERVER "api.openweathermap.org"
-#define WEB_PORT "80"
-#define WEB_PATH "/data/2.5/weather?q=Indianapolis&appid=22b03431ced097033d68e5e4d5477279&units=imperial&mode=json"
-
-#define VFD_HOST VSPI_HOST
-#define DMA_CHAN     2
-#define PIN_NUM_MISO 19
-#define PIN_NUM_MOSI 23
-#define PIN_NUM_CLK  18
-#define PIN_LE       32
-#define PIN_STROBE   14
-
-
-
-void vfd_send(spi_device_handle_t *vfd_dev, uint data);
-void wifi_http_get();
-
-
-char * http_extract_json_string(char *);
-
-static const char *TAG = "example_http";
-
-static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
-    "Host: "WEB_SERVER":"WEB_PORT"\r\n"
-    "User-Agent: esp-idf/1.0 esp32\r\n"
-    "\r\n";
+#include "vfd_driver.h"
+#include "open_wm.h"
 
 
 void app_main(void)
 {
-    wifi_http_get();
+    //wifi_http_get();
 
     //set up gpio for le and strobe
     gpio_config_t io_conf;
@@ -163,164 +133,6 @@ void app_main(void)
     esp_restart();
 }
 
-
-void vfd_send(spi_device_handle_t *vfd_dev, uint data) {
-   
-    esp_err_t ret;
-
-    spi_transaction_t vfd_trans = {
-        .flags = SPI_TRANS_USE_TXDATA,
-        .cmd = 0,
-        .addr = 0,
-        .length = 32,
-        .rxlength = 0,
-        .user = -1,
-        .tx_buffer = NULL,
-        .tx_data = {data >> 24, data >> 16, data >> 8,  data},
-        .rx_buffer = NULL,
-        .rx_data = {0x00, 0x00, 0x00, 0x00}
-    };
-
-  
-    ret = spi_device_transmit(*vfd_dev, &vfd_trans);
-    if (ret != ESP_OK) printf("Error: failed to complete transaction S\n"); 
-
-    //SET le high
-    gpio_set_level(PIN_LE, 1);
-
-    //SET le low
-    gpio_set_level(PIN_LE, 0);
-
-}
-
-void wifi_http_get() {
-    ESP_ERROR_CHECK( nvs_flash_init() );
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    ESP_ERROR_CHECK(example_connect());
-    
-        const struct addrinfo hints = {
-        .ai_family = AF_INET,
-        .ai_socktype = SOCK_STREAM,
-    };
-    struct addrinfo *res;
-    struct in_addr *addr;
-    int s, r;
-    char recv_buf[1000];
-
-    while(1) {
-        int err = getaddrinfo(WEB_SERVER, WEB_PORT, &hints, &res);
-
-        if(err != 0 || res == NULL) {
-            ESP_LOGE(TAG, "DNS lookup failed err=%d res=%p", err, res);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            continue;
-        }
-
-        /* Code to print the resolved IP.
-
-           Note: inet_ntoa is non-reentrant, look at ipaddr_ntoa_r for "real" code */
-        addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
-        ESP_LOGI(TAG, "DNS lookup succeeded. IP=%s", inet_ntoa(*addr));
-
-        s = socket(res->ai_family, res->ai_socktype, 0);
-        if(s < 0) {
-            ESP_LOGE(TAG, "... Failed to allocate socket.");
-            freeaddrinfo(res);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            continue;
-        }
-        ESP_LOGI(TAG, "... allocated socket");
-
-        if(connect(s, res->ai_addr, res->ai_addrlen) != 0) {
-            ESP_LOGE(TAG, "... socket connect failed errno=%d", errno);
-            close(s);
-            freeaddrinfo(res);
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
-            continue;
-        }
-
-        ESP_LOGI(TAG, "... connected");
-        freeaddrinfo(res);
-
-        if (write(s, REQUEST, strlen(REQUEST)) < 0) {
-            ESP_LOGE(TAG, "... socket send failed");
-            close(s);
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
-            continue;
-        }
-        ESP_LOGI(TAG, "... socket send success");
-
-        struct timeval receiving_timeout;
-        receiving_timeout.tv_sec = 5;
-        receiving_timeout.tv_usec = 0;
-        if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &receiving_timeout,
-                sizeof(receiving_timeout)) < 0) {
-            ESP_LOGE(TAG, "... failed to set socket receiving timeout");
-            close(s);
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
-            continue;
-        }
-        ESP_LOGI(TAG, "... set socket receiving timeout success");
-
-        printf("%s\n-+-+-+-+\n", recv_buf);
-
-        /* Read HTTP response */
-        do {
-            bzero(recv_buf, sizeof(recv_buf));
-            r = read(s, recv_buf, sizeof(recv_buf)-1);
-            //for(int i = 0; i < r; i++) {
-            //    putchar(recv_buf[i]);
-            //}
-
-            if (r > 0) {
-
-                printf("\nPRINTING HTTP\n");
-                printf("%s\n", recv_buf);
-                printf("\n\nDONE PRINTING HTTP\n");
-
-                char * http_json = http_extract_json_string(&(recv_buf[0]));
-                const char * jsonstring = http_json; 
-                cJSON * jsonstruct = cJSON_Parse(jsonstring);
-
-                cJSON * json_main = cJSON_GetObjectItem(jsonstruct, "main");
-                if (json_main == NULL) printf("JSONMAIN = NULL\n");
-                double temp = cJSON_GetObjectItem(json_main, "temp")->valuedouble;
-           
-                printf("\nTemp = %d\n", (int)round(temp));
-            }
-            } while(r > 0);
-
-        ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
-        close(s);
-        for(int countdown = 10; countdown >= 0; countdown--) {
-            ESP_LOGI(TAG, "%d... ", countdown);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-        ESP_LOGI(TAG, "Starting again!");
-    }
-}
-
-
 void getTemp() {
-
 }
 
-//This function takes the http response from the website in a string, and returns a string containing only the JSON line
-char * http_extract_json_string(char * original) {
-
-    char * token = strtok(original, "\n");
-
-    char JSONSearchString [] = "{\"coord\":{";
-    int isNotJSON;
-
-    while (token != NULL) {
-        isNotJSON = strncmp(token, JSONSearchString, strlen(JSONSearchString));
-        if (!isNotJSON) return token;
-        token = strtok(NULL, "\n");
-    }
-
-    //if no json weather string found, return NULL
-    return NULL;
-}
