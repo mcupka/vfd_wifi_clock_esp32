@@ -91,4 +91,22 @@ void vfd_send(spi_device_handle_t *vfd_dev, uint data) {
 
 }
 
+void vfd_set_grid_bits(int grid, uint mask) {
+    vfd_grid_data[grid] |= mask;
+}
 
+void vfd_reset_grid_bits(int grid, uint mask) {
+    vfd_grid_data[grid] &= ~mask;
+}
+
+
+
+//This function cycles through each grid, quickly sending the data so that it appears that all grids are on at once. Needs to be called in a loop if you want to be able to see it
+void vfd_onecycle() {
+
+        for (int a = 0; a < 8; a++) {
+            vfd_send(&vfd_dev, vfd_grid_data[a]);
+            vTaskDelay(1);
+        }
+
+}

@@ -33,19 +33,24 @@
 #define WEB_PATH "/data/2.5/weather?q=Indianapolis&appid=22b03431ced097033d68e5e4d5477279&units=imperial&mode=json"
 
 
+typedef struct owm_data_t {
+    int temp_now;
+    int temp_high;
+    int temp_low;
+    int temp_feel;
+};
 
-char * http_extract_json_string(char *);
-
-static const char *TAG = "example_http";
-
+static const char *TAG = "OWM REQUEST";
 static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
     "Host: "WEB_SERVER":"WEB_PORT"\r\n"
     "User-Agent: esp-idf/1.0 esp32\r\n"
     "\r\n";
 
 
+char * http_extract_json_string(char *);
 
 void wifi_http_get();
 
+struct owm_data_t get_owm_data(); 
 
 #endif
