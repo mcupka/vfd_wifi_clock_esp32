@@ -24,6 +24,7 @@
 
 
 #include "vfd_driver.h"
+#include "vfd_chars.h"
 #include "open_wm.h"
 
 #define MS_BETWEEN_OWM_UPDATES 10000
@@ -40,21 +41,18 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(example_connect());
    
-    uint sophie_s =     0b00000000000010000000110111010010;
-    uint sophie_o =     0b00000000000001000000111101110010;
-    uint sophie_p =     0b00000000000000100000111110100010;
-    uint sophie_h =     0b00000000000000010000101111100010;
-    uint sophie_i =     0b00000000000000001000101001000011;
-    uint sophie_e =     0b00000000000000000100110110110010;
-    uint sophie_broil = 0b00000000000000000001110110110010;
+    uint broil = 0b00000000000000000001110110110010;
 
-    vfd_set_grid_bits(0, sophie_s);
-    vfd_set_grid_bits(1, sophie_o);
-    vfd_set_grid_bits(2, sophie_p);
-    vfd_set_grid_bits(3, sophie_h);
-    vfd_set_grid_bits(4, sophie_i);
-    vfd_set_grid_bits(5, sophie_e);
-    vfd_set_grid_bits(7, sophie_broil);
+
+    vfd_enable_grid(0);
+    vfd_enable_grid(1);
+    vfd_enable_grid(2);
+    vfd_set_grid_bits(0, vfd_asciitable['S']);
+    vfd_set_grid_bits(1, vfd_asciitable['O']);
+    vfd_set_grid_bits(2, vfd_asciitable['P']);
+    vfd_set_grid_bits(7, broil);
+
+    vfd_showint(68, VFD_SSEG_LARGE, VFD_ALIGN_RIGHT);
 
     //launch task to display data on VFD
     xTaskCreate(task_display_data, "DISPLAY_TASK", 1000, NULL, configMAX_PRIORITIES - 1, NULL);
@@ -92,6 +90,7 @@ void task_update_temperature() {
         wifi_http_get();
         struct owm_data_t dat = get_owm_data();
         printf("\nTEMP=%d\n", dat.temp_now);
+        vfd_showint(dat.temp_now, VFD_SSEG_LARGE, VFD_ALIGN_RIGHT);
         vTaskDelay(MS_BETWEEN_OWM_UPDATES/portTICK_PERIOD_MS); 
     }    
 
