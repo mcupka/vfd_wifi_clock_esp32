@@ -20,5 +20,13 @@
 #define VFD_AN_SSEG_B (0x1 << 9)
 #define VFD_AN_SSEG_A (0x1 << 10)
 
+#define VFD_S (VFD_AN_SSEG_A | VFD_AN_SSEG_F | VFD_AN_SSEG_G | VFD_AN_SSEG_C | VFD_AN_SSEG_D)
+#define VFD_O (VFD_AN_SSEG_A | VFD_AN_SSEG_B | VFD_AN_SSEG_F | VFD_AN_SSEG_E |VFD_AN_SSEG_C | VFD_AN_SSEG_D)
+#define VFD_P (VFD_AN_SSEG_A | VFD_AN_SSEG_B | VFD_AN_SSEG_C | VFD_AN_SSEG_D | VFD_AN_SSEG_E | VFD_AN_SSEG_F | VFD_AN_SSEG_G)
+
+
+#define VFD_TOPIND = (0x1 << 11)
+#define VFD_TOPIND = (0x1 << 1)
+
 #endif
 
