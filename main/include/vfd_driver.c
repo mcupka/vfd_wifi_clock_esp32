@@ -1,16 +1,19 @@
 #include "vfd_driver.h"
+#include "string.h"
 
 extern uint vfd_grid_data[8];
 
 //set up the SPI peripheral for VFD use using pins specified in vfd_controller.h
 void vfd_config() {
 
+    //initialize sseg asciitable
+    vfd_init_asciitable();
  
     //initialize global grid data variables 
     for (int a = 0; a < 8; a++) {
         vfd_grid_data[a] = 0;
     } 
-
+    
     //Set gpio pins up for le and strobe pins
     gpio_config_t io_conf;
     io_conf.mode = GPIO_MODE_OUTPUT;
@@ -99,6 +102,13 @@ void vfd_reset_grid_bits(int grid, uint mask) {
     vfd_grid_data[grid] &= ~mask;
 }
 
+void vfd_enable_grid(int grid) {
+    vfd_set_grid_bits(grid, (VFD_GRIDS_HIGH >> grid));
+}
+
+void vfd_disable_grid(int grid) {
+    vfd_reset_grid_bits(grid, (VFD_GRIDS_HIGH >> grid));
+}
 
 
 //This function cycles through each grid, quickly sending the data so that it appears that all grids are on at once. Needs to be called in a loop if you want to be able to see it
@@ -110,3 +120,53 @@ void vfd_onecycle() {
         }
 
 }
+
+//put an integer into the small / large displays on the VFD 
+void vfd_showint(uint n, uint display_sel, uint alignleft) {
+    char buf[5] = {'\0', '\0', '\0', '\0', '\0'};
+    snprintf(buf, 4, "%d", n);
+
+    if (display_sel == VFD_SSEG_SMALL) {
+        //Grids 0, 1, and 2
+        vfd_reset_grid_bits(0, VFD_AN_SSEG_ALL);
+        vfd_reset_grid_bits(1, VFD_AN_SSEG_ALL);
+        vfd_reset_grid_bits(2, VFD_AN_SSEG_ALL);
+        if (alignleft == VFD_ALIGN_LEFT) {
+           for (int a = 0; (a < 3) && (buf[a] != '\0'); a++) {
+               vfd_enable_grid(a);
+               vfd_set_grid_bits(a, vfd_asciitable[(int)(buf[a])]);
+           } 
+        }
+        else {
+            int b = 0;
+            for (int a = 3 - strlen(buf); (a >= 0) && (buf[b] != '\0'); a++) {
+                vfd_enable_grid(a);
+                vfd_set_grid_bits(a, vfd_asciitable[(int)(buf[b])]);
+                b++;
+            }
+        }
+    }
+    else {
+        //Grids 3, 4, 5, and 6 
+        vfd_reset_grid_bits(3, VFD_AN_SSEG_ALL);
+        vfd_reset_grid_bits(4, VFD_AN_SSEG_ALL);
+        vfd_reset_grid_bits(5, VFD_AN_SSEG_ALL);
+        vfd_reset_grid_bits(6, VFD_AN_SSEG_ALL);
+        if (alignleft == VFD_ALIGN_LEFT) {
+           for (int a = 0; (a < 3) && (buf[a] != '\0'); a++) {
+               vfd_enable_grid(a + 3);
+               vfd_set_grid_bits(a + 3, vfd_asciitable[(int)(buf[a])]);
+           } 
+        }
+        else {
+            int b = 0;
+            for (int a = 4 - strlen(buf); (a >= 0) && (buf[b] != '\0'); a++) {
+                vfd_enable_grid(a + 3);
+                vfd_set_grid_bits(a + 3, vfd_asciitable[(int)(buf[b])]);
+                b++;
+            }
+        }  
+    }    
+
+}
+
