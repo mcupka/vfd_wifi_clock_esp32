@@ -32,6 +32,8 @@
 void task_display_data();
 void task_update_temperature();
 
+int wifi_connected;
+
 void app_main(void)
 {
     vfd_config();
@@ -40,7 +42,9 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(example_connect());
-   
+  
+    wifi_connected = 1;
+
     uint broil = 0b00000000000000000001110110110010;
 
 
@@ -52,7 +56,7 @@ void app_main(void)
     vfd_set_grid_bits(2, vfd_asciitable['P']);
     vfd_set_grid_bits(7, broil);
 
-    vfd_showint(68, VFD_SSEG_LARGE, VFD_ALIGN_RIGHT);
+    vfd_showint(68, VFD_SSEG_LARGE, VFD_ALIGN_RIGHT, VFD_CLEAR_DISPLAY);
 
     //launch task to display data on VFD
     xTaskCreate(task_display_data, "DISPLAY_TASK", 1000, NULL, configMAX_PRIORITIES - 1, NULL);
@@ -87,11 +91,21 @@ void task_display_data() {
 void task_update_temperature() {
 
     while (1) {
-        wifi_http_get();
-        struct owm_data_t dat = get_owm_data();
-        printf("\nTEMP=%d\n", dat.temp_now);
-        vfd_showint(dat.temp_now, VFD_SSEG_LARGE, VFD_ALIGN_RIGHT);
-        vTaskDelay(MS_BETWEEN_OWM_UPDATES/portTICK_PERIOD_MS); 
+        if (wifi_connected == 1) {
+            struct owm_data_t dat = get_owm_data();
+            printf("\nTEMP=%.2f\n", dat.temp_now);
+            printf("\nTEMPINT=%d\n", (int)dat.temp_now);
+            printf("TEMPREMAINDER=%d\n", (int)(100.0 * (dat.temp_now - (float)((int) dat.temp_now))));
+            vfd_showint((int)dat.temp_now, VFD_SSEG_LARGE, VFD_ALIGN_LEFT, VFD_NOCLEAR_DISPLAY);
+            vfd_showint((int)(100.0 * (dat.temp_now - (float)((int) dat.temp_now))), VFD_SSEG_LARGE, VFD_ALIGN_RIGHT, VFD_NOCLEAR_DISPLAY);
+            vfd_set_grid_bits(4, VFD_AN_BOTCOLON); //decimal point
+            wifi_http_get();
+        }
+        else {
+            ESP_ERROR_CHECK(example_connect());
+            wifi_connected = 1;
+        }
+       vTaskDelay(MS_BETWEEN_OWM_UPDATES/portTICK_PERIOD_MS); 
     }    
 
 }

@@ -29,6 +29,8 @@
 #define VFD_AN_TOPIND (0x1 << 11) //top incidators (BAKE, TIMER, etc. Changes per grid)
 #define VFD_AN_BOTIND (0x1 << 1) //bottom indicators (DRY, CLEAN, etc. Changes per grid)
 
+#define VFD_AN_BOTCOLON (0x1 << 0)
+#define VFD_AN_TOPCOLON (0x1 << 11)
 
 #define VFD_BLANK 0x00000000
 #define VFD_A (VFD_AN_SSEG_A | VFD_AN_SSEG_B | VFD_AN_SSEG_C | VFD_AN_SSEG_E | VFD_AN_SSEG_F | VFD_AN_SSEG_G)

@@ -34,10 +34,10 @@
 
 
 typedef struct owm_data_t {
-    int temp_now;
-    int temp_high;
-    int temp_low;
-    int temp_feel;
+    double temp_now;
+    double temp_high;
+    double temp_low;
+    double temp_feel;
 };
 
 static const char *TAG = "OWM REQUEST";

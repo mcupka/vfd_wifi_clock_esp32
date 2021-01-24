@@ -3,12 +3,14 @@
 //#define DEBUG_PRINT
 
 struct owm_data_t owm_data = {
-    .temp_now = 0,
-    .temp_high = 0,
-    .temp_low = 0,
-    .temp_feel = 0
+    .temp_now = 0.0,
+    .temp_high = 0.0,
+    .temp_low = 0.0,
+    .temp_feel = 0.0
 };
 
+
+extern int wifi_connected;
 
 void wifi_http_get() {
     
@@ -17,6 +19,7 @@ void wifi_http_get() {
         .ai_socktype = SOCK_STREAM,
     };
 
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     struct addrinfo *res;
     struct in_addr *addr;
     int s, r;
@@ -49,6 +52,7 @@ void wifi_http_get() {
         ESP_LOGE(TAG, "... socket connect failed errno=%d", errno);
         close(s);
         freeaddrinfo(res);
+        wifi_connected = 0;
         vTaskDelay(4000 / portTICK_PERIOD_MS);
         return;
     }
@@ -97,10 +101,10 @@ void wifi_http_get() {
             printf("\nTemp = %d\nFeels Like = %d\nLow = %d\nHigh = %d\n", (int)round(temp), (int)round(temp_feel), (int)round(temp_low), (int)round(temp_high));
 #endif
 
-            owm_data.temp_now = (int) round(temp);
-            owm_data.temp_low = (int) round(temp_low);
-            owm_data.temp_high = (int) round(temp_high);
-            owm_data.temp_feel = (int) round(temp_feel);
+            owm_data.temp_now = temp;
+            owm_data.temp_low = temp_low;
+            owm_data.temp_high = temp_high;
+            owm_data.temp_feel = temp_feel;
 
     ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
     close(s);

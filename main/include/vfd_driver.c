@@ -122,24 +122,28 @@ void vfd_onecycle() {
 }
 
 //put an integer into the small / large displays on the VFD 
-void vfd_showint(uint n, uint display_sel, uint alignleft) {
+void vfd_showint(uint n, uint display_sel, uint alignleft, uint clear_display) {
     char buf[5] = {'\0', '\0', '\0', '\0', '\0'};
     snprintf(buf, 4, "%d", n);
 
     if (display_sel == VFD_SSEG_SMALL) {
         //Grids 0, 1, and 2
-        vfd_reset_grid_bits(0, VFD_AN_SSEG_ALL);
-        vfd_reset_grid_bits(1, VFD_AN_SSEG_ALL);
-        vfd_reset_grid_bits(2, VFD_AN_SSEG_ALL);
+        if (clear_display == VFD_CLEAR_DISPLAY) {
+            vfd_reset_grid_bits(0, VFD_AN_SSEG_ALL);
+            vfd_reset_grid_bits(1, VFD_AN_SSEG_ALL);
+            vfd_reset_grid_bits(2, VFD_AN_SSEG_ALL);
+        }
         if (alignleft == VFD_ALIGN_LEFT) {
            for (int a = 0; (a < 3) && (buf[a] != '\0'); a++) {
                vfd_enable_grid(a);
+               vfd_reset_grid_bits(a, VFD_AN_SSEG_ALL);
                vfd_set_grid_bits(a, vfd_asciitable[(int)(buf[a])]);
            } 
         }
         else {
             int b = 0;
             for (int a = 3 - strlen(buf); (a >= 0) && (buf[b] != '\0'); a++) {
+                vfd_reset_grid_bits(a, VFD_AN_SSEG_ALL);
                 vfd_enable_grid(a);
                 vfd_set_grid_bits(a, vfd_asciitable[(int)(buf[b])]);
                 b++;
@@ -148,13 +152,16 @@ void vfd_showint(uint n, uint display_sel, uint alignleft) {
     }
     else {
         //Grids 3, 4, 5, and 6 
-        vfd_reset_grid_bits(3, VFD_AN_SSEG_ALL);
-        vfd_reset_grid_bits(4, VFD_AN_SSEG_ALL);
-        vfd_reset_grid_bits(5, VFD_AN_SSEG_ALL);
-        vfd_reset_grid_bits(6, VFD_AN_SSEG_ALL);
+        if (clear_display == VFD_CLEAR_DISPLAY) {
+            vfd_reset_grid_bits(3, VFD_AN_SSEG_ALL);
+            vfd_reset_grid_bits(4, VFD_AN_SSEG_ALL);
+            vfd_reset_grid_bits(5, VFD_AN_SSEG_ALL);
+            vfd_reset_grid_bits(6, VFD_AN_SSEG_ALL);
+        }
         if (alignleft == VFD_ALIGN_LEFT) {
            for (int a = 0; (a < 3) && (buf[a] != '\0'); a++) {
                vfd_enable_grid(a + 3);
+               vfd_reset_grid_bits(a + 3, VFD_AN_SSEG_ALL);
                vfd_set_grid_bits(a + 3, vfd_asciitable[(int)(buf[a])]);
            } 
         }
@@ -162,6 +169,7 @@ void vfd_showint(uint n, uint display_sel, uint alignleft) {
             int b = 0;
             for (int a = 4 - strlen(buf); (a >= 0) && (buf[b] != '\0'); a++) {
                 vfd_enable_grid(a + 3);
+                vfd_reset_grid_bits(a + 3, VFD_AN_SSEG_ALL);
                 vfd_set_grid_bits(a + 3, vfd_asciitable[(int)(buf[b])]);
                 b++;
             }

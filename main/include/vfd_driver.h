@@ -21,6 +21,9 @@
 #define VFD_ALIGN_LEFT 1
 #define VFD_ALIGN_RIGHT 0
 
+#define VFD_CLEAR_DISPLAY 1
+#define VFD_NOCLEAR_DISPLAY 0
+
 #define VFD_SSEG_LARGE 1
 #define VFD_SSEG_SMALL 0
 
@@ -49,6 +52,6 @@ void vfd_reset_grid_bits(int grid, uint mask);
 void vfd_enable_grid(int grid);
 void vfd_disable_grid(int grid);
 
-void vfd_showint(uint n, uint display_sel, uint alignleft);
+void vfd_showint(uint n, uint display_sel, uint alignleft, uint clear_display);
 
 #endif
